@@ -83,8 +83,7 @@ ipcMain.handle('get-server-status', async (event, serverIp) => {
     } catch (error) { return null; }
 });
 
-// ================== 🔥 5. 核心：带删除功能的自动更新 🔥 ==================
-
+// ================== 5. 更新逻辑 ==================
 ipcMain.handle('get-local-version', async () => {
     try {
         if (fs.existsSync(localVersionPath)) {
@@ -95,7 +94,6 @@ ipcMain.handle('get-local-version', async () => {
     } catch (e) { return "0.0.0"; }
 });
 
-// 接收 deleteList 参数
 ipcMain.handle('update-modpack', async (event, { url, version, deleteList }) => {
     const win = BrowserWindow.getFocusedWindow();
     try {
@@ -103,7 +101,6 @@ ipcMain.handle('update-modpack', async (event, { url, version, deleteList }) => 
         const tempPath = path.join(app.getPath('temp'), 'update.zip');
         const writer = fs.createWriteStream(tempPath);
 
-        // 1. 下载
         const response = await axios({ url, method: 'GET', responseType: 'stream' });
         const totalLength = response.headers['content-length'];
         let receivedBytes = 0;
@@ -122,39 +119,25 @@ ipcMain.handle('update-modpack', async (event, { url, version, deleteList }) => 
             writer.on('error', reject);
         });
 
-        // 2. 🔥 执行暗杀 (删除旧文件) 🔥
         if (deleteList && Array.isArray(deleteList) && deleteList.length > 0) {
-            console.log("🗑️ 正在清理旧文件...");
             win.webContents.send('update-progress', { status: 'cleaning', percent: 100 });
-            
             deleteList.forEach(relativePath => {
-                // 安全检查：禁止路径穿越 (不允许包含 ..)
                 const safePath = path.normalize(relativePath).replace(/^(\.\.[\/\\])+/, '');
                 const fullPath = path.join(gameRoot, safePath);
-                
                 if (fs.existsSync(fullPath)) {
-                    try {
-                        fs.unlinkSync(fullPath); // 物理删除
-                        console.log(`✅ 已删除: ${safePath}`);
-                    } catch (err) {
-                        console.error(`❌ 删除失败: ${safePath}`, err);
-                    }
+                    try { fs.unlinkSync(fullPath); } catch (err) { console.error(err); }
                 }
             });
         }
 
-        // 3. 解压覆盖
         win.webContents.send('update-progress', { status: 'extracting', percent: 100 });
         const zip = new AdmZip(tempPath);
         zip.extractAllTo(gameRoot, true); 
-
-        // 4. 写入新版本号
         fs.writeFileSync(localVersionPath, JSON.stringify({ version: version }));
         
         return { success: true };
 
     } catch (error) {
-        console.error("更新失败:", error);
         return { success: false, error: error.message };
     }
 });
@@ -191,6 +174,18 @@ ipcMain.on('start-game', (event, config) => {
             event.sender.send('log-update', `⚠️ 找不到 authlib-injector.jar`);
         }
 
+        // 🔥🔥🔥 核心修改：解析独立连接 IP 🔥🔥🔥
+        let serverOpts = {};
+        if (config.connectIP) {
+            // 处理 IP:Port 格式
+            const parts = config.connectIP.split(':');
+            serverOpts = {
+                server: parts[0],
+                port: parts[1] ? parseInt(parts[1]) : 25565
+            };
+            console.log(`🔗 将自动连接至: ${serverOpts.server}:${serverOpts.port}`);
+        }
+
         let opts = {
             authorization: {
                 access_token: config.authData.accessToken,
@@ -205,10 +200,14 @@ ipcMain.on('start-game', (event, config) => {
             javaPath: finalJavaPath,
             memory: config.memory || getSmartMemory(),
             customArgs: customArgs,
-            window: { width: 854, height: 480 }
+            window: { width: 854, height: 480 },
+            
+            // 🔥 注入连接参数
+            server: serverOpts.server,
+            port: serverOpts.port
         };
 
-        event.sender.send('log-update', `🚀 锁定版本: ${versionToLaunch}，准备启动...`);
+        event.sender.send('log-update', `🚀 准备启动 (AutoConnect: ${!!config.connectIP})...`);
         launcher.launch(opts);
 
         launcher.on('debug', (e) => event.sender.send('log-update', `[DEBUG] ${e}`));

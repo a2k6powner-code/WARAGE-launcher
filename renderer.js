@@ -17,7 +17,6 @@ document.getElementById('open-settings').addEventListener('click', () => setting
 document.getElementById('close-settings').addEventListener('click', () => settingsModal.style.display = 'none');
 document.getElementById('save-settings').addEventListener('click', () => settingsModal.style.display = 'none');
 
-// 内存与Java设置
 const ramSlider = document.getElementById('ram-slider');
 const ramInput = document.getElementById('ram-input');
 const ramDisplay = document.getElementById('ram-value-display');
@@ -31,14 +30,18 @@ document.getElementById('btn-select-java').addEventListener('click', async () =>
     if (path) javaPathInput.value = path;
 });
 
-// ================== 🔥 2. 动态数据与更新 (已修改) 🔥 ==================
+// ================== 🔥 2. 动态数据与独立IP控制 🔥 ==================
 const newsTitleDom = document.querySelector('.news-title');
 const newsCardDom = document.querySelector('.news-card'); 
 const serverStatusDom = document.querySelector('.server-status');
 
+// 🔴 全局变量：存储独立的直连 IP
+let autoConnectIP = null;
+
 async function initLauncherData() {
     const config = await window.api.getNews();
     if (config) {
+        // 1. 公告
         if (config.news) {
             newsTitleDom.innerHTML = `<i class="fas fa-bullhorn"></i> ${config.news.title}`;
             document.querySelectorAll('.news-item').forEach(el => el.remove());
@@ -55,7 +58,25 @@ async function initLauncherData() {
                 newsCardDom.appendChild(div);
             });
         }
-        if (config.server_ip) updateServerStatus(config.server_ip);
+        
+        // 2. 状态显示 (使用 server_status_ip)
+        if (config.server_status_ip) {
+            updateServerStatus(config.server_status_ip);
+        } else if (config.server_ip) {
+            // 兼容旧配置
+            updateServerStatus(config.server_ip);
+        }
+
+        // 3. 🔥 读取独立的直连配置 🔥
+        if (config.game_connect && config.game_connect.enable) {
+            autoConnectIP = config.game_connect.ip;
+            console.log("✅ 已获取独立直连 IP:", autoConnectIP);
+        } else {
+            console.log("🚫 自动直连功能未开启或未配置");
+            autoConnectIP = null;
+        }
+
+        // 4. 更新检查
         if (config.modpack) checkModpackUpdate(config.modpack);
     }
 }
@@ -71,9 +92,7 @@ async function updateServerStatus(ip) {
 
 async function checkModpackUpdate(cloudModpack) {
     const localVersion = await window.api.getLocalVersion();
-    if (cloudModpack.version !== localVersion) {
-        showUpdateModal(cloudModpack);
-    }
+    if (cloudModpack.version !== localVersion) showUpdateModal(cloudModpack);
 }
 
 function showUpdateModal(modpackInfo) {
@@ -87,13 +106,11 @@ function showUpdateModal(modpackInfo) {
     note.innerText = modpackInfo.note || "请更新后进入游戏。";
 
     btn.onclick = async () => {
-        btn.disabled = true;
-        btn.innerText = "正在下载资源...";
-        
+        btn.disabled = true; btn.innerText = "正在下载资源...";
         const result = await window.api.updateModpack({
             url: modpackInfo.url,
             version: modpackInfo.version,
-            deleteList: modpackInfo.delete // 🔥 关键：把暗杀名单传给后端
+            deleteList: modpackInfo.delete 
         });
 
         if (result.success) {
@@ -101,8 +118,7 @@ function showUpdateModal(modpackInfo) {
             window.location.reload();
         } else {
             alert("更新失败: " + result.error);
-            btn.disabled = false;
-            btn.innerText = "重试更新";
+            btn.disabled = false; btn.innerText = "重试更新";
         }
     };
 }
@@ -110,12 +126,11 @@ function showUpdateModal(modpackInfo) {
 window.api.onUpdateProgress((data) => {
     const bar = document.getElementById('update-progress-bar');
     const btn = document.getElementById('btn-start-update');
-    
     if (data.status === 'downloading') {
         btn.innerText = `下载中 ${Math.round(data.percent)}%`;
         bar.style.width = `${data.percent}%`;
     } else if (data.status === 'cleaning') {
-        btn.innerText = "正在清理旧文件..."; // 🔥 显示清理状态
+        btn.innerText = "正在清理旧文件...";
         bar.style.width = '100%';
     } else if (data.status === 'extracting') {
         btn.innerText = "正在解压覆盖...";
@@ -174,7 +189,10 @@ launchBtn.addEventListener('click', () => {
         authData: storedAuthData,
         authServer: document.getElementById('authServer').value,
         memory: memConfig,
-        javaPath: javaPath
+        javaPath: javaPath,
+        
+        // 🔥 传递独立的直连 IP (如果为 null 则不传递)
+        connectIP: autoConnectIP
     });
 });
 
