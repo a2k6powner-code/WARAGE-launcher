@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Launcher NOCL</title>
+    <title>WARAGE Launcher</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * { box-sizing: border-box; user-select: none; }
@@ -25,7 +25,7 @@
         .win-btn:hover { background: rgba(255,255,255,0.1); color: white; }
         .win-btn.close:hover { background: #e81123; }
 
-        /* 左侧边栏 */
+        /* Sidebar */
         .sidebar {
             width: 260px; background: rgba(30, 30, 30, 0.98);
             display: flex; flex-direction: column; padding: 40px 20px; z-index: 10;
@@ -48,27 +48,22 @@
             transition: 0.3s; width: 100%; text-align: left; font-size: 14px;
         }
         .btn-text:hover { color: #fff; background: rgba(255,255,255,0.05); border-radius: 6px;}
-        
         .sidebar-footer { margin-top: auto; border-top: 1px solid #333; padding-top: 10px; }
 
-        /* 右侧主内容区 */
+        /* Main Content */
         .main-content {
             flex: 1; position: relative;
-            /* ⚠️这里换成你的背景图！建议找一张帅气的游戏截图⚠️ */
             background: url('https://images.alphacoders.com/133/1336338.png') center/cover no-repeat;
             display: flex; flex-direction: column; justify-content: space-between; padding: 60px;
         }
-        /* 黑色遮罩，让文字更清晰 */
         .overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: linear-gradient(to right, rgba(20,20,20,0.9) 0%, rgba(20,20,20,0.4) 100%);
             z-index: 1; pointer-events: none;
         }
-
-        /* 中间的内容容器 (位于遮罩之上) */
         .content-container { z-index: 2; color: white; margin-top: 40px;}
 
-        /* 公告卡片样式 */
+        /* News & Status */
         .news-card {
             background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);
             padding: 20px; border-radius: 8px; border-left: 4px solid #4CAF50;
@@ -76,19 +71,12 @@
         }
         .news-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; }
         .news-item { font-size: 14px; color: #ddd; margin-bottom: 5px; display: flex; align-items: center; gap: 8px;}
-        .news-item i { font-size: 8px; color: #4CAF50; }
-
-        /* 服务器状态样式 */
-        .server-status {
-            display: flex; gap: 20px; color: #ccc; font-size: 14px; margin-top: 10px;
-        }
+        
+        .server-status { display: flex; gap: 20px; color: #ccc; font-size: 14px; margin-top: 10px; }
         .status-dot { width: 10px; height: 10px; background: #4CAF50; border-radius: 50%; display: inline-block; }
 
-        /* 启动区域 */
-        .launch-area {
-            z-index: 2; text-align: right;
-            display: flex; flex-direction: column; align-items: flex-end;
-        }
+        /* Launch Area */
+        .launch-area { z-index: 2; text-align: right; display: flex; flex-direction: column; align-items: flex-end; }
         #launchBtn {
             padding: 15px 60px; font-size: 24px; font-weight: bold;
             background: #4CAF50; color: white; border: none; border-radius: 8px;
@@ -97,14 +85,13 @@
         }
         #launchBtn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(76, 175, 80, 0.6); }
         #launchBtn:disabled { background: #444; color: #888; cursor: not-allowed; transform: none; box-shadow: none; opacity: 0.7; }
-
         .eula-container {
             margin-top: 10px; color: #ccc; font-size: 13px; display: flex; align-items: center; gap: 8px;
             background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 4px;
         }
         .eula-link { color: #4CAF50; text-decoration: underline; cursor: pointer; }
 
-        /* 底部状态栏 */
+        /* Bottom Bar */
         .status-bar {
             position: absolute; bottom: 0; right: 0; width: 100%; z-index: 10;
             background: rgba(0,0,0,0.8); color: #aaa;
@@ -115,7 +102,7 @@
             background: #4CAF50; width: 0%; transition: width 0.2s; z-index: 200;
         }
 
-        /* 设置弹窗 (保持不变) */
+        /* Modal (Settings) */
         #settings-modal {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.85); z-index: 200;
@@ -130,6 +117,13 @@
         .file-select-row button { padding: 0 15px; background: #444; border: 1px solid #555; color: white; border-radius: 6px; cursor: pointer; }
         .range-container { display: flex; align-items: center; gap: 10px; }
         input[type=range] { flex: 1; accent-color: #4CAF50; cursor: pointer; }
+
+        /* 🔥 更新弹窗 (新增) 🔥 */
+        #update-modal {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 300;
+            display: none; justify-content: center; align-items: center;
+        }
     </style>
 </head>
 <body>
@@ -146,7 +140,7 @@
                     <i class="fas fa-times" id="close-settings" style="cursor:pointer"></i>
                 </div>
                 <div class="input-group">
-                    <label>Jvav 路径 (留空使用内置)</label>
+                    <label>Java 路径 (留空使用内置)</label>
                     <div class="file-select-row">
                         <input type="text" id="java-path-display" placeholder="自动使用内置 Java" readonly>
                         <button id="btn-select-java">选择...</button>
@@ -169,10 +163,26 @@
             </div>
         </div>
 
+        <div id="update-modal">
+            <div class="modal-box" style="text-align: center; border: 1px solid #4CAF50;">
+                <div style="font-size: 40px; color: #4CAF50; margin-bottom: 20px;"><i class="fas fa-cloud-download-alt"></i></div>
+                <h2 id="update-title" style="color:#fff; margin-top:0;">发现新版本</h2>
+                <p id="update-note" style="color:#ccc; margin: 20px 0; font-size: 14px; text-align: left; background:#333; padding:15px; border-radius:5px; line-height: 1.5;"></p>
+                
+                <div style="width:100%; height:6px; background:#444; margin-bottom:20px; border-radius:3px; overflow:hidden;">
+                    <div id="update-progress-bar" style="width:0%; height:100%; background:#4CAF50; transition: width 0.2s;"></div>
+                </div>
+
+                <button id="btn-start-update" style="padding:12px 40px; background:#4CAF50; border:none; color:white; border-radius:5px; cursor:pointer; font-size:16px; font-weight: bold;">
+                    立即更新
+                </button>
+            </div>
+        </div>
+
         <div class="sidebar">
             <div class="logo">WARAGE <span>Launcher</span></div>
             <div class="input-group">
-                <label>邮箱</label>
+                <label>账号 / 邮箱</label>
                 <input type="text" id="username" placeholder="name@example.com">
             </div>
             <div class="input-group">
@@ -180,7 +190,7 @@
                 <input type="password" id="password" placeholder="••••••">
             </div>
             <button id="loginBtn" class="btn-text" style="background: #333; justify-content: center; margin-top:10px; color:white; border-radius:6px; border:1px solid #444;">
-                <i class="fas fa-sign-in-alt"></i> 登录
+                <i class="fas fa-sign-in-alt"></i> 登录账号
             </button>
             <p id="loginStatus" style="font-size:12px; color:#666; margin-top:10px; text-align:center;">请先登录</p>
             <button class="btn-text" id="btn-register" style="margin-top: 10px; justify-content: center; color: #4CAF50;">
@@ -196,19 +206,14 @@
             <div class="overlay"></div>
             
             <div class="content-container">
-                <h1 style="font-size: 36px; margin: 0 0 10px 0;">WARAGE CIVILWAR</h1>
+                <h1 style="font-size: 36px; margin: 0 0 10px 0;">欢迎来到 WARAGE</h1>
                 <div class="server-status">
-                    <span><span class="status-dot"></span> 服务器运行正常</span>
-                    <span><i class="fas fa-users"></i> 在线人数: 125/500</span>
-                    <span><i class="fas fa-signal"></i> Ping: 24ms</span>
+                    <span><i class="fas fa-spinner fa-spin"></i> 连接服务器中...</span>
                 </div>
 
                 <div class="news-card" style="margin-top: 30px;">
                     <div class="news-title"><i class="fas fa-bullhorn"></i> 最新公告</div>
-                    <div class="news-item"><i class="fas fa-circle"></i> 新增工业2实验版模组，已同步至客户端</div>
-                    <div class="news-item"><i class="fas fa-circle"></i> 周末全服双倍经验活动开启！</div>
-                    <div class="news-item"><i class="fas fa-circle"></i> 修复了部分玩家进服卡顿的问题</div>
-                </div>
+                    </div>
             </div>
 
             <div class="launch-area">

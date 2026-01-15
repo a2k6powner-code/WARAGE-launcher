@@ -12,6 +12,11 @@ contextBridge.exposeInMainWorld('api', {
     getNews: () => ipcRenderer.invoke('get-news'),
     getServerStatus: (ip) => ipcRenderer.invoke('get-server-status', ip),
 
+    //  新增：版本控制接口 
+    getLocalVersion: () => ipcRenderer.invoke('get-local-version'),
+    updateModpack: (data) => ipcRenderer.invoke('update-modpack', data),
+    onUpdateProgress: (callback) => ipcRenderer.on('update-progress', (event, val) => callback(val)),
+
     onLog: (callback) => ipcRenderer.on('log-update', (event, value) => callback(value)),
     onProgress: (callback) => ipcRenderer.on('progress-update', (event, value) => callback(value))
 });
