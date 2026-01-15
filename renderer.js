@@ -4,8 +4,8 @@ document.getElementById('btn-close').addEventListener('click', () => window.api.
 
 const LINKS = {
     register: "https://littleskin.cn/auth/register",
-    about: "https://www.baidu.com", 
-    eula: "https://account.mojang.com/documents/minecraft_eula"
+    about: "https://docs.qq.com/doc/DSEhUeVFwTFJDTU5F", 
+    eula: "https://docs.qq.com/doc/DSEVQQ0h3cEZhWkdX"
 };
 
 document.getElementById('btn-register').addEventListener('click', () => window.api.openExternal(LINKS.register));
