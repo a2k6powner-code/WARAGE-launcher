@@ -7,15 +7,40 @@ const os = require('os');
 
 let mainWindow;
 
-// ================== 0. 工具函数：智能内存计算 ==================
+// ================== 0. 智能路径处理 (打包核心) ==================
+
+// 判断当前是否是打包后的环境
+const isPackaged = app.isPackaged;
+
+// 定义资源根目录
+const resourcesPath = isPackaged 
+    ? process.resourcesPath // 生产环境：安装目录/resources
+    : path.join(__dirname, 'resources'); // 开发环境：项目目录/resources
+
+// 定义 Java 和 Authlib 路径 (基于上面的根目录)
+const javaPath = path.join(resourcesPath, 'java8', 'bin', 'java.exe');
+// 注意：如果你改了文件名，这里记得对应修改
+const authlibPath = path.join(resourcesPath, 'authlib', 'authlib-injector.jar'); 
+
+// 定义游戏数据目录
+// 生产环境建议放在 exe 同级目录下，方便用户管理
+const gameRoot = isPackaged 
+    ? path.join(path.dirname(process.execPath), 'minecraft_data') 
+    : path.join(__dirname, 'minecraft_data');
+
+console.log(`[系统模式] ${isPackaged ? "生产环境 (Packaged)" : "开发环境 (Dev)"}`);
+console.log(`[Java路径] ${javaPath}`);
+console.log(`[游戏路径] ${gameRoot}`);
+
+
+// ================== 1. 内存计算工具 ==================
 function getSmartMemory() {
     const totalMemMB = os.totalmem() / 1024 / 1024;
-    const freeMemForOS = 2048; // 给系统预留 2GB
+    const freeMemForOS = 2048; 
     let gameMem = totalMemMB - freeMemForOS;
 
-    // 1.12.2 原版需求很低，但为了防止 Mod 需求，设置合理区间
-    if (gameMem < 1024) gameMem = 1024; // 至少 1G
-    if (gameMem > 8192) gameMem = 8192; // 封顶 8G
+    if (gameMem < 1024) gameMem = 1024;
+    if (gameMem > 8192) gameMem = 8192;
 
     return {
         max: `${Math.floor(gameMem)}M`,
@@ -23,7 +48,7 @@ function getSmartMemory() {
     };
 }
 
-// ================== 1. Electron 窗口逻辑 ==================
+// ================== 2. 窗口逻辑 ==================
 function createWindow() {
     mainWindow = new BrowserWindow({
         width: 900,
@@ -44,14 +69,12 @@ app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit();
 });
 
-// ================== 2. 账号登录逻辑 (已修复 LittleSkin 报错) ==================
+// ================== 3. 登录逻辑 (含 Agent 修复) ==================
 ipcMain.handle('login-request', async (event, { username, password, authServer }) => {
     try {
         console.log(`🔐 正在请求登录: ${authServer}`);
-        
-        // 标准 Yggdrasil 协议包
         const payload = {
-            agent: { name: "Minecraft", version: 1 }, // 关键修复
+            agent: { name: "Minecraft", version: 1 },
             username: username,
             password: password,
             clientToken: "launcher-client-token-gen-001", 
@@ -59,8 +82,6 @@ ipcMain.handle('login-request', async (event, { username, password, authServer }
         };
 
         const response = await axios.post(`${authServer}/authserver/authenticate`, payload);
-        
-        console.log(`✅ 登录成功: ${response.data.selectedProfile.name}`);
         return { success: true, data: response.data };
 
     } catch (error) {
@@ -70,38 +91,31 @@ ipcMain.handle('login-request', async (event, { username, password, authServer }
     }
 });
 
-// ================== 3. 游戏启动/下载逻辑 (核心) ==================
+// ================== 4. 游戏启动逻辑 ==================
 ipcMain.on('start-game', (event, config) => {
     const launcher = new Client();
-    
-    // --- 路径定义 ---
-    // 确保你的 resources 目录下有 java8 和 authlib 文件夹
-    const javaPath = path.join(__dirname, 'resources', 'java8', 'bin', 'java.exe');
-    const authlibPath = path.join(__dirname, 'resources', 'authlib', 'authlib-injector.jar');
-    const gameRoot = path.join(__dirname, 'minecraft_data');
 
-    // --- 1. 检查 Java 环境 ---
+    // --- 环境检查 ---
     if (!fs.existsSync(javaPath)) {
         event.sender.send('log-update', `❌ [致命错误] 找不到内置 Java，请检查路径:\n${javaPath}`);
+        // 在生产环境，通常这里应该弹窗提示用户重新安装
         return;
     }
 
-    // --- 2. 准备外置登录参数 ---
+    // --- 外置登录注入 ---
     let customArgs = [];
     if (fs.existsSync(authlibPath)) {
-        console.log("注入 Authlib-Injector...");
+        console.log("💉 注入 Authlib-Injector...");
         customArgs.push(`-javaagent:${authlibPath}=${config.authServer}`);
     } else {
-        event.sender.send('log-update', `[警告] 找不到 authlib-injector.jar，将无法进入服务器！`);
+        event.sender.send('log-update', `⚠️ [警告] 找不到 authlib-injector.jar，外置登录将失效！`);
     }
 
     const memorySettings = getSmartMemory();
-    console.log(`内存策略: ${memorySettings.max}`);
+    console.log(`🧠 内存分配: ${memorySettings.max}`);
 
-    // --- 3. 启动配置 (下载原版专用) ---
-    // 这里指定了 1.12.2，如果本地没有，会自动开始下载
+    // --- 启动配置 ---
     let opts = {
-        // 授权信息
         authorization: {
             access_token: config.authData.accessToken,
             client_token: config.authData.clientToken,
@@ -113,14 +127,14 @@ ipcMain.on('start-game', (event, config) => {
 
         root: gameRoot,
         
-        // 🟢 指定要下载/启动的版本
+        // 此处设置为下载原版 1.12.2
+        // 如果你需要版本隔离，请自行添加 overrides.gameDirectory
         version: {
             number: "1.12.2", 
             type: "release"
         },
         
-        // 🟢 国内加速配置 (BMCLAPI)
-        // 如果没有这部分，在国内下载资源文件会极慢甚至失败
+        // 国内源加速
         overrides: {
             url: {
                 meta: "https://bmclapi2.bangbang93.com", 
@@ -135,24 +149,17 @@ ipcMain.on('start-game', (event, config) => {
         window: { width: 854, height: 480 }
     };
 
-    // --- 4. 发射与事件监听 ---
-    console.log("准备启动 (自动补全模式)...");
-    event.sender.send('log-update', "正在检查/下载游戏文件，请耐心等待...");
+    console.log("🚀 准备启动...");
+    event.sender.send('log-update', "🚀 正在校验/下载游戏资源，请稍候...");
     
     launcher.launch(opts);
 
-    // 日志
+    // --- 事件监听 ---
     launcher.on('debug', (e) => event.sender.send('log-update', `[DEBUG] ${e}`));
     launcher.on('data', (e) => event.sender.send('log-update', `[GAME] ${e}`));
     
-    // 进度条
     launcher.on('progress', (e) => {
         event.sender.send('progress-update', e);
-        // 在日志里也稍微输出一点，防止用户以为卡死了
-        if(e.type === 'assets' || e.type === 'classes') {
-            // 只显示部分进度，避免刷屏
-            // event.sender.send('log-update', `[下载中] ${e.type}: ${e.task} / ${e.total}`);
-        }
     });
 
     launcher.on('close', (code) => {
