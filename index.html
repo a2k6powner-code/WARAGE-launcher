@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>我的专用启动器</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #222; color: white; }
+        .box { background: #333; padding: 20px; border-radius: 8px; margin-bottom: 10px; }
+        input { display: block; width: 100%; margin: 10px 0; padding: 8px; }
+        button { width: 100%; padding: 10px; background: #4CAF50; color: white; border: none; cursor: pointer; }
+        button:disabled { background: #555; }
+        #logArea { height: 200px; overflow-y: scroll; background: #000; font-family: monospace; padding: 10px; font-size: 12px;}
+    </style>
+</head>
+<body>
+    <h1>WARAGE Launcher</h1>
+    
+    <div class="box">
+        <h3>1. 登录 (外置验证)</h3>
+        <input type="text" id="authServer" value="https://littleskin.cn/api/yggdrasil" placeholder="验证服务器地址">
+        <input type="text" id="username" placeholder="邮箱/账号">
+        <input type="password" id="password" placeholder="密码">
+        <button id="loginBtn">登录并获取 Token</button>
+        <p id="loginStatus" style="color: yellow;"></p>
+    </div>
+
+    <div class="box">
+        <h3>2. 游戏控制</h3>
+        <div id="progressBar" style="background:green; height:5px; width:0%"></div>
+        <button id="launchBtn" disabled>启动游戏 (请先登录)</button>
+    </div>
+
+    <div id="logArea">等待操作...</div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>
