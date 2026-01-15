@@ -1,36 +1,231 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>我的专用启动器</title>
+    <title>WARAGE Launcher</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #222; color: white; }
-        .box { background: #333; padding: 20px; border-radius: 8px; margin-bottom: 10px; }
-        input { display: block; width: 100%; margin: 10px 0; padding: 8px; }
-        button { width: 100%; padding: 10px; background: #4CAF50; color: white; border: none; cursor: pointer; }
-        button:disabled { background: #555; }
-        #logArea { height: 200px; overflow-y: scroll; background: #000; font-family: monospace; padding: 10px; font-size: 12px;}
+        * { box-sizing: border-box; user-select: none; }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; overflow: hidden; background: transparent; }
+        
+        #app {
+            width: 100vw; height: 100vh; background: #1a1a1a;
+            border-radius: 12px; overflow: hidden; display: flex;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5); position: relative;
+        }
+
+        #title-bar {
+            position: absolute; top: 0; left: 0; width: 100%; height: 32px;
+            z-index: 100; -webkit-app-region: drag;
+            display: flex; justify-content: flex-end; align-items: center; padding-right: 10px;
+        }
+        .win-btn {
+            width: 30px; height: 30px; line-height: 30px; text-align: center;
+            color: #ccc; cursor: pointer; -webkit-app-region: no-drag; transition: 0.2s; border-radius: 4px;
+        }
+        .win-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+        .win-btn.close:hover { background: #e81123; }
+
+        /* 左侧边栏 */
+        .sidebar {
+            width: 260px; background: rgba(30, 30, 30, 0.98);
+            display: flex; flex-direction: column; padding: 40px 20px; z-index: 10;
+            border-right: 1px solid #333;
+        }
+        .logo { font-size: 24px; font-weight: bold; color: #fff; margin-bottom: 30px; letter-spacing: 2px;}
+        .logo span { color: #4CAF50; }
+
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; color: #888; font-size: 12px; margin-bottom: 5px; }
+        input[type="text"], input[type="password"], input[type="number"] {
+            width: 100%; padding: 10px; background: #2b2b2b; border: 1px solid #333;
+            color: white; border-radius: 6px; outline: none; transition: 0.3s;
+        }
+        input:focus { border-color: #4CAF50; background: #333; }
+
+        .btn-text {
+            background: none; border: none; color: #aaa; cursor: pointer;
+            padding: 10px; display: flex; align-items: center; gap: 10px;
+            transition: 0.3s; width: 100%; text-align: left; font-size: 14px;
+        }
+        .btn-text:hover { color: #fff; background: rgba(255,255,255,0.05); border-radius: 6px;}
+        
+        .sidebar-footer { margin-top: auto; border-top: 1px solid #333; padding-top: 10px; }
+
+        /* 右侧主内容区 */
+        .main-content {
+            flex: 1; position: relative;
+            /* ⚠️这里换成你的背景图！建议找一张帅气的游戏截图⚠️ */
+            background: url('https://images.alphacoders.com/133/1336338.png') center/cover no-repeat;
+            display: flex; flex-direction: column; justify-content: space-between; padding: 60px;
+        }
+        /* 黑色遮罩，让文字更清晰 */
+        .overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to right, rgba(20,20,20,0.9) 0%, rgba(20,20,20,0.4) 100%);
+            z-index: 1; pointer-events: none;
+        }
+
+        /* 中间的内容容器 (位于遮罩之上) */
+        .content-container { z-index: 2; color: white; margin-top: 40px;}
+
+        /* 公告卡片样式 */
+        .news-card {
+            background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);
+            padding: 20px; border-radius: 8px; border-left: 4px solid #4CAF50;
+            max-width: 400px; margin-bottom: 20px;
+        }
+        .news-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; }
+        .news-item { font-size: 14px; color: #ddd; margin-bottom: 5px; display: flex; align-items: center; gap: 8px;}
+        .news-item i { font-size: 8px; color: #4CAF50; }
+
+        /* 服务器状态样式 */
+        .server-status {
+            display: flex; gap: 20px; color: #ccc; font-size: 14px; margin-top: 10px;
+        }
+        .status-dot { width: 10px; height: 10px; background: #4CAF50; border-radius: 50%; display: inline-block; }
+
+        /* 启动区域 */
+        .launch-area {
+            z-index: 2; text-align: right;
+            display: flex; flex-direction: column; align-items: flex-end;
+        }
+        #launchBtn {
+            padding: 15px 60px; font-size: 24px; font-weight: bold;
+            background: #4CAF50; color: white; border: none; border-radius: 8px;
+            cursor: pointer; box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+            transition: all 0.3s; opacity: 1;
+        }
+        #launchBtn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(76, 175, 80, 0.6); }
+        #launchBtn:disabled { background: #444; color: #888; cursor: not-allowed; transform: none; box-shadow: none; opacity: 0.7; }
+
+        .eula-container {
+            margin-top: 10px; color: #ccc; font-size: 13px; display: flex; align-items: center; gap: 8px;
+            background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 4px;
+        }
+        .eula-link { color: #4CAF50; text-decoration: underline; cursor: pointer; }
+
+        /* 底部状态栏 */
+        .status-bar {
+            position: absolute; bottom: 0; right: 0; width: 100%; z-index: 10;
+            background: rgba(0,0,0,0.8); color: #aaa;
+            padding: 5px 15px; font-size: 12px; display: flex; justify-content: space-between;
+        }
+        #progress-line {
+            position: absolute; bottom: 0; left: 0; height: 3px; 
+            background: #4CAF50; width: 0%; transition: width 0.2s; z-index: 200;
+        }
+
+        /* 设置弹窗 (保持不变) */
+        #settings-modal {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 200;
+            display: none; justify-content: center; align-items: center;
+        }
+        .modal-box {
+            background: #222; padding: 30px; border-radius: 10px; width: 450px;
+            border: 1px solid #444; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .file-select-row { display: flex; gap: 10px; }
+        .file-select-row input { flex: 1; cursor: default; }
+        .file-select-row button { padding: 0 15px; background: #444; border: 1px solid #555; color: white; border-radius: 6px; cursor: pointer; }
+        .range-container { display: flex; align-items: center; gap: 10px; }
+        input[type=range] { flex: 1; accent-color: #4CAF50; cursor: pointer; }
     </style>
 </head>
 <body>
-    <h1>WARAGE Launcher</h1>
-    
-    <div class="box">
-        <h3>1. 登录 (外置验证)</h3>
-        <input type="text" id="authServer" value="https://littleskin.cn/api/yggdrasil" placeholder="验证服务器地址">
-        <input type="text" id="username" placeholder="邮箱/账号">
-        <input type="password" id="password" placeholder="密码">
-        <button id="loginBtn">登录并获取 Token</button>
-        <p id="loginStatus" style="color: yellow;"></p>
+    <div id="app">
+        <div id="title-bar">
+            <div class="win-btn" id="btn-min"><i class="fas fa-minus"></i></div>
+            <div class="win-btn close" id="btn-close"><i class="fas fa-times"></i></div>
+        </div>
+
+        <div id="settings-modal">
+            <div class="modal-box">
+                <div style="margin-bottom:20px; font-size:18px; color:white; display:flex; justify-content:space-between;">
+                    <span>启动设置</span>
+                    <i class="fas fa-times" id="close-settings" style="cursor:pointer"></i>
+                </div>
+                <div class="input-group">
+                    <label>Java 路径 (留空使用内置)</label>
+                    <div class="file-select-row">
+                        <input type="text" id="java-path-display" placeholder="自动使用内置 Java" readonly>
+                        <button id="btn-select-java">选择...</button>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>最大内存: <span id="ram-value-display" style="color:#4CAF50">自动</span></label>
+                    <div class="range-container">
+                        <input type="range" id="ram-slider" min="1024" max="16384" step="512" value="4096">
+                        <input type="number" id="ram-input" style="width: 80px;" placeholder="自动">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>验证服务器</label>
+                    <input type="text" id="authServer" value="https://littleskin.cn/api/yggdrasil">
+                </div>
+                <button class="btn-text" id="save-settings" style="background:#4CAF50; color:white; justify-content:center; border-radius:4px; margin-top:20px;">
+                    保存设置
+                </button>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="logo">WARAGE <span>Launcher</span></div>
+            <div class="input-group">
+                <label>账号 / 邮箱</label>
+                <input type="text" id="username" placeholder="name@example.com">
+            </div>
+            <div class="input-group">
+                <label>密码</label>
+                <input type="password" id="password" placeholder="••••••">
+            </div>
+            <button id="loginBtn" class="btn-text" style="background: #333; justify-content: center; margin-top:10px; color:white; border-radius:6px; border:1px solid #444;">
+                <i class="fas fa-sign-in-alt"></i> 登录账号
+            </button>
+            <p id="loginStatus" style="font-size:12px; color:#666; margin-top:10px; text-align:center;">请先登录</p>
+            <button class="btn-text" id="btn-register" style="margin-top: 10px; justify-content: center; color: #4CAF50;">
+                <i class="fas fa-user-plus"></i> 没有账号？去注册
+            </button>
+            <div class="sidebar-footer">
+                <button class="btn-text" id="open-settings"><i class="fas fa-cog"></i> 游戏设置</button>
+                <button class="btn-text" id="btn-about"><i class="fas fa-info-circle"></i> 关于我们</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="overlay"></div>
+            
+            <div class="content-container">
+                <h1 style="font-size: 36px; margin: 0 0 10px 0;">欢迎来到 WARAGE</h1>
+                <div class="server-status">
+                    <span><span class="status-dot"></span> 服务器运行正常</span>
+                    <span><i class="fas fa-users"></i> 在线人数: 125/500</span>
+                    <span><i class="fas fa-signal"></i> Ping: 24ms</span>
+                </div>
+
+                <div class="news-card" style="margin-top: 30px;">
+                    <div class="news-title"><i class="fas fa-bullhorn"></i> 最新公告</div>
+                    <div class="news-item"><i class="fas fa-circle"></i> 新增工业2实验版模组，已同步至客户端</div>
+                    <div class="news-item"><i class="fas fa-circle"></i> 周末全服双倍经验活动开启！</div>
+                    <div class="news-item"><i class="fas fa-circle"></i> 修复了部分玩家进服卡顿的问题</div>
+                </div>
+            </div>
+
+            <div class="launch-area">
+                <button id="launchBtn" disabled>启动游戏</button>
+                <div class="eula-container">
+                    <input type="checkbox" id="eula-check"> 
+                    <span>我已阅读并同意 <span class="eula-link" id="link-eula">用户协议 (EULA)</span></span>
+                </div>
+            </div>
+
+            <div class="status-bar">
+                <span id="progress-text">等待操作...</span>
+                <span id="progress-percent">0%</span>
+            </div>
+            <div id="progress-line"></div>
+        </div>
     </div>
-
-    <div class="box">
-        <h3>2. 游戏控制</h3>
-        <div id="progressBar" style="background:green; height:5px; width:0%"></div>
-        <button id="launchBtn" disabled>启动游戏 (请先登录)</button>
-    </div>
-
-    <div id="logArea">等待操作...</div>
-
     <script src="renderer.js"></script>
 </body>
 </html>

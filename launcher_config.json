@@ -1,0 +1,20 @@
+{
+  "news": {
+    "title": " WARAGE 公告",
+    "items": [
+      {
+        "text": "新增7878实验版模组 (点击查看百科)",
+        "url": "https://www.mcmod.cn/class/2.html"
+      },
+      {
+        "text": "周末全服91倍经验活动开启！",
+        "url": "https://www.yourserver.com/event"
+      },
+      {
+        "text": "请勿使用下北泽材质包，违者封号",
+        "url": "" 
+      }
+    ]
+  },
+  "server_ip": "play.yourserver.com"
+}
