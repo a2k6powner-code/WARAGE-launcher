@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>HYPER INDUSTRY</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            /* Binance Color Palette */
+            --bn-yellow: #FCD535;       /* 币安黄 */
+            --bn-yellow-hover: #F0B90B;
+            --bn-bg: #181A20;           /* 全局深色背景 */
+            --bn-card: #1E2329;         /* 卡片/侧边栏背景 */
+            --bn-input: #2B3139;        /* 输入框背景 */
+            --bn-border: #2B3139;       /* 边框颜色 */
+            --bn-text-main: #EAECEF;    /* 主要文字 */
+            --bn-text-sub: #848E9C;     /* 次要文字 */
+            --bn-green: #0ECB81;        /* 涨/成功 */
+            --bn-red: #F6465D;          /* 跌/关闭/错误 */
+        }
+
+        * { box-sizing: border-box; user-select: none; outline: none; }
+        
+        body { 
+            margin: 0; padding: 0; 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            overflow: hidden; 
+            background: transparent; 
+            color: var(--bn-text-main);
+        }
+        
+        #app {
+            width: 100vw; height: 100vh; 
+            background: var(--bn-bg);
+            border-radius: 4px; /* 金融软件通常圆角较小 */
+            overflow: hidden; 
+            display: flex;
+            position: relative;
+            border: 1px solid #333;
+        }
+
+        /* ================= 顶部标题栏 ================= */
+        #title-bar {
+            position: absolute; top: 0; left: 0; width: 100%; height: 32px;
+            z-index: 1000; -webkit-app-region: drag;
+            display: flex; justify-content: flex-end; align-items: center; padding-right: 10px;
+            background: var(--bn-bg);
+            border-bottom: 1px solid var(--bn-border);
+        }
+        .win-btn {
+            width: 32px; height: 24px; 
+            display: flex; justify-content: center; align-items: center;
+            color: var(--bn-text-sub); cursor: pointer; -webkit-app-region: no-drag; 
+            transition: 0.2s; border-radius: 2px; font-size: 12px;
+        }
+        .win-btn:hover { background: var(--bn-input); color: var(--bn-text-main); }
+        .win-btn.close:hover { background: var(--bn-red); color: white; }
+
+        /* ================= 左侧侧边栏 (登录区) ================= */
+        .sidebar {
+            width: 300px; 
+            background: var(--bn-card);
+            border-right: 1px solid var(--bn-border);
+            display: flex; flex-direction: column; 
+            padding: 50px 24px; z-index: 10;
+        }
+
+        .logo { 
+            font-size: 24px; font-weight: 700; color: var(--bn-text-main); 
+            margin-bottom: 30px; letter-spacing: 0.5px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .logo i { color: var(--bn-yellow); font-size: 20px; }
+        .logo span { color: var(--bn-yellow); }
+
+        .form-title {
+            color: var(--bn-text-main); font-size: 20px; font-weight: 600; margin-bottom: 24px;
+        }
+
+        .input-group { margin-bottom: 16px; }
+        .input-group label { 
+            display: block; color: var(--bn-text-main); 
+            font-size: 14px; margin-bottom: 8px; font-weight: 400;
+        }
+        
+        /* Binance 风格输入框 */
+        input[type="text"], input[type="password"], input[type="number"] {
+            width: 100%; padding: 12px; 
+            background: var(--bn-input); 
+            border: 1px solid transparent;
+            color: var(--bn-text-main); border-radius: 4px; 
+            font-size: 14px; transition: 0.2s;
+            font-family: 'Inter', sans-serif;
+        }
+        input:focus { 
+            border-color: var(--bn-yellow); 
+        }
+        input::placeholder { color: #5E6673; }
+
+        /* Binance 风格主按钮 (黄底黑字) */
+        #loginBtn {
+            background: var(--bn-yellow);
+            color: #181A20; /* 黑色字 */
+            border: none;
+            width: 100%; padding: 12px;
+            font-weight: 600; font-size: 14px;
+            border-radius: 4px; cursor: pointer;
+            transition: 0.2s; margin-top: 10px;
+        }
+        #loginBtn:hover:not(:disabled) { background: var(--bn-yellow-hover); }
+        #loginBtn:disabled { background: var(--bn-input); color: var(--bn-text-sub); cursor: not-allowed; }
+
+        .helper-links {
+            display: flex; justify-content: space-between; margin-top: 16px;
+        }
+        .text-link {
+            color: var(--bn-text-sub); font-size: 12px; text-decoration: none; cursor: pointer; transition: 0.2s;
+        }
+        .text-link:hover { color: var(--bn-yellow); }
+
+        .sidebar-footer { margin-top: auto; padding-top: 20px; }
+        .menu-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 12px; color: var(--bn-text-sub);
+            cursor: pointer; border-radius: 4px; transition: 0.2s; font-size: 14px;
+            background: transparent; border: none; width: 100%; text-align: left;
+        }
+        .menu-item:hover { background: var(--bn-input); color: var(--bn-text-main); }
+        .menu-item i { width: 20px; text-align: center; }
+
+        /* ================= 右侧主内容区 ================= */
+        .main-content {
+            flex: 1; position: relative;
+            display: flex; flex-direction: column; 
+            padding: 60px 40px;
+            background: var(--bn-bg);
+        }
+
+        /* 顶部欢迎语 */
+        .header-section { display: flex; justify-content: space-between; align-items: flex-start; }
+        .welcome-text h1 { font-size: 28px; font-weight: 600; margin: 0; color: var(--bn-text-main); }
+        .welcome-text p { color: var(--bn-text-sub); font-size: 14px; margin-top: 5px; }
+        
+        .server-tag { 
+            background: rgba(14, 203, 129, 0.1); 
+            color: var(--bn-green);
+            padding: 6px 12px; border-radius: 4px;
+            font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px;
+        }
+        .server-tag.offline { background: rgba(246, 70, 93, 0.1); color: var(--bn-red); }
+
+        /* 公告列表 (类似行情列表) */
+        .news-container {
+            margin-top: 40px;
+            background: var(--bn-bg);
+        }
+        .section-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--bn-text-main); }
+        
+        .news-item { 
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 0; border-bottom: 1px solid var(--bn-border);
+            color: var(--bn-text-main); font-size: 14px; cursor: pointer; transition: 0.2s;
+        }
+        .news-item:hover { background: rgba(255,255,255,0.02); }
+        .news-item span { display: flex; align-items: center; gap: 10px; }
+        .news-date { color: var(--bn-text-sub); font-size: 12px; }
+
+        /* 启动区域 (底部) */
+        .launch-area { 
+            margin-top: auto; 
+            display: flex; justify-content: space-between; align-items: flex-end;
+            padding-bottom: 20px;
+        }
+        
+        .launch-info { color: var(--bn-text-sub); font-size: 12px; }
+        .launch-info strong { color: var(--bn-text-main); display: block; font-size: 16px; margin-bottom: 4px; }
+        
+        #launchBtn {
+            padding: 0 48px; height: 48px;
+            background: var(--bn-yellow); color: #181A20;
+            border: none; border-radius: 4px;
+            font-size: 16px; font-weight: 600;
+            cursor: pointer; transition: 0.2s;
+            box-shadow: none; clip-path: none; /* 去除旧风格 */
+        }
+        #launchBtn:hover:not(:disabled) { background: var(--bn-yellow-hover); }
+        #launchBtn:disabled { background: var(--bn-input); color: var(--bn-text-sub); }
+
+        .eula-row {
+            display: flex; align-items: center; gap: 8px; color: var(--bn-text-sub); font-size: 12px; margin-bottom: 10px;
+        }
+        input[type="checkbox"] { accent-color: var(--bn-yellow); }
+        .link-text { color: var(--bn-yellow); cursor: pointer; text-decoration: none; }
+        .link-text:hover { text-decoration: underline; }
+
+        /* 底部状态条 */
+        .status-bar {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 24px;
+            background: var(--bn-card); border-top: 1px solid var(--bn-border);
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 10px; color: var(--bn-text-sub); font-size: 11px;
+            z-index: 200;
+        }
+        #progress-line {
+            position: absolute; top: 0; left: 0; height: 2px; 
+            background: var(--bn-yellow); width: 0%; transition: width 0.2s;
+        }
+
+        /* 模态框通用 */
+        .modal-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 500;
+            display: none; justify-content: center; align-items: center;
+        }
+        .modal-box {
+            background: var(--bn-card); width: 420px; border-radius: 6px;
+            padding: 24px; box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        }
+        .modal-header { 
+            display: flex; justify-content: space-between; align-items: center; 
+            margin-bottom: 24px; font-size: 18px; font-weight: 600; color: var(--bn-text-main);
+        }
+        .modal-close { cursor: pointer; color: var(--bn-text-sub); }
+        .modal-close:hover { color: var(--bn-text-main); }
+
+        .file-row { display: flex; gap: 8px; }
+        .btn-secondary {
+            background: var(--bn-input); color: var(--bn-text-main); border: none;
+            padding: 0 16px; border-radius: 4px; cursor: pointer; font-size: 13px;
+        }
+        .btn-secondary:hover { background: #353b46; }
+
+        /* 滑块 */
+        input[type=range] {
+            width: 100%; height: 4px; background: var(--bn-input); border-radius: 2px;
+            appearance: none;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            appearance: none; width: 16px; height: 16px; border-radius: 50%;
+            background: var(--bn-text-sub); cursor: pointer; transition: 0.2s;
+        }
+        input[type=range]::-webkit-slider-thumb:hover { background: var(--bn-yellow); }
+
+        /* 更新专用 */
+        #update-progress-bar { background: var(--bn-yellow); }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="title-bar">
+            <div class="win-btn" id="btn-min"><i class="fas fa-minus"></i></div>
+            <div class="win-btn close" id="btn-close"><i class="fas fa-times"></i></div>
+        </div>
+
+        <div id="settings-modal" class="modal-overlay">
+            <div class="modal-box">
+                <div class="modal-header">
+                    <span>启动设置</span>
+                    <i class="fas fa-times modal-close" id="close-settings"></i>
+                </div>
+                
+                <div class="input-group">
+                    <label>Java 路径</label>
+                    <div class="file-row">
+                        <input type="text" id="java-path-display" placeholder="默认使用内置 JDK 17" readonly style="color: var(--bn-text-sub);">
+                        <button class="btn-secondary" id="btn-select-java">浏览</button>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>内存分配: <span id="ram-value-display" style="color:var(--bn-yellow)">自动</span></label>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <input type="range" id="ram-slider" min="1024" max="16384" step="512" value="4096">
+                        <input type="number" id="ram-input" style="width: 80px;" placeholder="Auto">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>皮肤站 API</label>
+                    <input type="text" id="authServer" value="https://littleskin.cn/api/yggdrasil">
+                </div>
+
+                <button id="save-settings" style="width:100%; padding:12px; background:var(--bn-yellow); border:none; border-radius:4px; font-weight:600; cursor:pointer;">
+                    保存设置
+                </button>
+            </div>
+        </div>
+
+        <div id="update-modal" class="modal-overlay">
+            <div class="modal-box" style="text-align: center;">
+                <div style="font-size: 40px; color: var(--bn-yellow); margin-bottom: 16px;">
+                    <i class="fas fa-arrow-alt-circle-up"></i>
+                </div>
+                <h3 id="update-title" style="margin: 0; color: var(--bn-text-main);">系统更新</h3>
+                <p id="update-note" style="color:var(--bn-text-sub); font-size: 13px; margin: 16px 0; background:var(--bn-input); padding:10px; border-radius:4px; text-align:left;"></p>
+                
+                <div style="width:100%; height:4px; background:var(--bn-input); margin-bottom:20px; border-radius:2px; overflow:hidden;">
+                    <div id="update-progress-bar" style="width:0%; height:100%; transition: width 0.2s;"></div>
+                </div>
+
+                <button id="btn-start-update" style="width:100%; padding:12px; background:var(--bn-yellow); border:none; border-radius:4px; font-weight:600; cursor:pointer;">
+                    立即更新
+                </button>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="logo">
+                <i class="fas fa-cube"></i>
+                HYPER INDUSTRY
+            </div>
+            
+            <div class="form-title">登录账户</div>
+            
+            <div class="input-group">
+                <label>邮箱 / 用户名</label>
+                <input type="text" id="username">
+            </div>
+            <div class="input-group">
+                <label>密码</label>
+                <input type="password" id="password">
+            </div>
+
+            <button id="loginBtn">登录</button>
+            <p id="loginStatus" style="font-size:12px; color:var(--bn-text-sub); margin-top:10px;">等待用户操作</p>
+            
+            <div class="helper-links">
+                <span class="text-link" id="btn-register">注册新账户</span>
+                <span class="text-link">忘记密码?</span>
+            </div>
+
+            <div class="sidebar-footer">
+                <button class="menu-item" id="open-settings"><i class="fas fa-sliders-h"></i> 启动设置</button>
+                <button class="menu-item" id="btn-about"><i class="fas fa-info-circle"></i> 关于版本</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="header-section">
+                <div class="welcome-text">
+                    <h1>欢迎回来</h1>
+                    <p>准备开始今天的旅程了吗？</p>
+                </div>
+                <div class="server-status">
+                    <div class="server-tag"><i class="fas fa-check-circle"></i> 服务端运行中</div>
+                </div>
+            </div>
+
+            <div class="news-container">
+                <div class="section-title">最新公告</div>
+                <div class="news-card">
+                    <div class="news-item">
+                        <span><i class="fas fa-caret-right" style="color:var(--bn-yellow)"></i> 正在获取最新资讯...</span>
+                        <span class="news-date">Today</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="launch-area">
+                <div class="launch-info">
+                    <strong>HYPER CLIENT</strong>
+                    <span>版本 v1.0.1 | 核心就绪</span>
+                </div>
+                
+                <div style="display:flex; flex-direction:column; align-items:flex-end;">
+                    <div class="eula-row">
+                        <input type="checkbox" id="eula-check"> 
+                        <span>我已阅读并同意 <span class="link-text" id="link-eula">用户协议</span></span>
+                    </div>
+                    <button id="launchBtn" disabled>启动游戏</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-bar">
+            <div id="progress-line"></div> <span id="progress-text">系统空闲</span>
+            <span id="progress-percent">0%</span>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>

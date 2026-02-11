@@ -1,15 +1,23 @@
 {
   "name": "warage-launcher",
   "productName": "WARAGE Launcher",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "My Custom Minecraft Launcher",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder --win --x64"
+    "build": "electron-builder --win --x64",
+    "dist": "electron-builder --win --x64 -p always"
   },
   "build": {
     "appId": "com.warage.launcher",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "你的GitHub用户名",
+        "repo": "你的仓库名称"
+      }
+    ],
     "directories": {
       "output": "dist"
     },
@@ -26,8 +34,8 @@
     },
     "extraResources": [
       {
-        "from": "resources/java8",
-        "to": "java8"
+        "from": "resources/jdk17",
+        "to": "jdk17"
       },
       {
         "from": "resources/authlib",
@@ -39,6 +47,7 @@
     "adm-zip": "^0.5.16",
     "axios": "^1.6.0",
     "electron-is-dev": "^3.0.1",
+    "electron-updater": "^6.1.8",
     "fs-extra": "^11.2.0",
     "minecraft-launcher-core": "^3.12.0"
   },

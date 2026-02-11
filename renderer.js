@@ -1,212 +1,162 @@
-// ================== 1. 基础交互 ==================
+// ================== 1. 窗口与基础交互 ==================
 document.getElementById('btn-min').addEventListener('click', () => window.api.minimize());
 document.getElementById('btn-close').addEventListener('click', () => window.api.close());
 
-const LINKS = {
-    register: "https://littleskin.cn/auth/register",
-    about: "https://www.baidu.com", 
-    eula: "https://account.mojang.com/documents/minecraft_eula"
-};
-
-document.getElementById('btn-register').addEventListener('click', () => window.api.openExternal(LINKS.register));
-document.getElementById('btn-about').addEventListener('click', () => window.api.openExternal(LINKS.about));
-document.getElementById('link-eula').addEventListener('click', () => window.api.openExternal(LINKS.eula));
-
+// 模态框控制
 const settingsModal = document.getElementById('settings-modal');
 document.getElementById('open-settings').addEventListener('click', () => settingsModal.style.display = 'flex');
 document.getElementById('close-settings').addEventListener('click', () => settingsModal.style.display = 'none');
 document.getElementById('save-settings').addEventListener('click', () => settingsModal.style.display = 'none');
 
+// 内存滑块
 const ramSlider = document.getElementById('ram-slider');
 const ramInput = document.getElementById('ram-input');
 const ramDisplay = document.getElementById('ram-value-display');
 function updateRamDisplay(val) { ramDisplay.innerText = val ? val + " MB" : "自动"; }
 ramSlider.addEventListener('input', (e) => { ramInput.value = e.target.value; updateRamDisplay(e.target.value); });
-ramInput.addEventListener('input', (e) => { if (e.target.value) ramSlider.value = e.target.value; updateRamDisplay(e.target.value); });
 
-const javaPathInput = document.getElementById('java-path-display');
-document.getElementById('btn-select-java').addEventListener('click', async () => {
-    const path = await window.api.selectJava();
-    if (path) javaPathInput.value = path;
-});
+// ================== 2. 启动器自我更新 (App Update) ==================
+// 对应 HTML 中的 #update-modal
+const appUpdateModal = document.getElementById('update-modal');
+const appUpdateBtn = document.getElementById('btn-start-update');
+const appUpdateBar = document.getElementById('update-progress-bar');
+const appUpdateNote = document.getElementById('update-note');
 
-// ================== 🔥 2. 动态数据与独立IP控制 🔥 ==================
-const newsTitleDom = document.querySelector('.news-title');
-const newsCardDom = document.querySelector('.news-card'); 
-const serverStatusDom = document.querySelector('.server-status');
-
-// 🔴 全局变量：存储独立的直连 IP
-let autoConnectIP = null;
-
-async function initLauncherData() {
-    const config = await window.api.getNews();
-    if (config) {
-        // 1. 公告
-        if (config.news) {
-            newsTitleDom.innerHTML = `<i class="fas fa-bullhorn"></i> ${config.news.title}`;
-            document.querySelectorAll('.news-item').forEach(el => el.remove());
-            config.news.items.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'news-item';
-                let txt = typeof item === 'string' ? item : item.text;
-                let url = typeof item === 'string' ? "" : item.url;
-                div.innerHTML = `<i class="fas fa-circle" style="font-size: 8px; color: #4CAF50; margin-right: 8px;"></i> ${txt}`;
-                if (url) {
-                    div.style.cursor = "pointer"; div.style.textDecoration = "underline";
-                    div.addEventListener('click', () => window.api.openExternal(url));
-                }
-                newsCardDom.appendChild(div);
-            });
-        }
-        
-        // 2. 状态显示 (使用 server_status_ip)
-        if (config.server_status_ip) {
-            updateServerStatus(config.server_status_ip);
-        } else if (config.server_ip) {
-            // 兼容旧配置
-            updateServerStatus(config.server_ip);
-        }
-
-        // 3. 🔥 读取独立的直连配置 🔥
-        if (config.game_connect && config.game_connect.enable) {
-            autoConnectIP = config.game_connect.ip;
-            console.log("✅ 已获取独立直连 IP:", autoConnectIP);
-        } else {
-            console.log("🚫 自动直连功能未开启或未配置");
-            autoConnectIP = null;
-        }
-
-        // 4. 更新检查
-        if (config.modpack) checkModpackUpdate(config.modpack);
-    }
-}
-
-async function updateServerStatus(ip) {
-    const status = await window.api.getServerStatus(ip);
-    if (status && status.online) {
-        serverStatusDom.innerHTML = `<span><span class="status-dot" style="background:#4CAF50"></span> 运行正常</span> <span><i class="fas fa-users"></i> ${status.players.online}/${status.players.max}</span>`;
-    } else {
-        serverStatusDom.innerHTML = `<span><span class="status-dot" style="background:#e81123"></span> 离线</span>`;
-    }
-}
-
-async function checkModpackUpdate(cloudModpack) {
-    const localVersion = await window.api.getLocalVersion();
-    if (cloudModpack.version !== localVersion) showUpdateModal(cloudModpack);
-}
-
-function showUpdateModal(modpackInfo) {
-    const modal = document.getElementById('update-modal');
-    const title = document.getElementById('update-title');
-    const note = document.getElementById('update-note');
-    const btn = document.getElementById('btn-start-update');
-    
-    modal.style.display = 'flex';
-    title.innerText = `发现新版本: v${modpackInfo.version}`;
-    note.innerText = modpackInfo.note || "请更新后进入游戏。";
-
-    btn.onclick = async () => {
-        btn.disabled = true; btn.innerText = "正在下载资源...";
-        const result = await window.api.updateModpack({
-            url: modpackInfo.url,
-            version: modpackInfo.version,
-            deleteList: modpackInfo.delete 
-        });
-
-        if (result.success) {
-            alert("更新成功！启动器将重启刷新。");
-            window.location.reload();
-        } else {
-            alert("更新失败: " + result.error);
-            btn.disabled = false; btn.innerText = "重试更新";
-        }
-    };
-}
-
-window.api.onUpdateProgress((data) => {
-    const bar = document.getElementById('update-progress-bar');
-    const btn = document.getElementById('btn-start-update');
-    if (data.status === 'downloading') {
-        btn.innerText = `下载中 ${Math.round(data.percent)}%`;
-        bar.style.width = `${data.percent}%`;
-    } else if (data.status === 'cleaning') {
-        btn.innerText = "正在清理旧文件...";
-        bar.style.width = '100%';
-    } else if (data.status === 'extracting') {
-        btn.innerText = "正在解压覆盖...";
-        bar.style.width = '100%';
+window.api.onAppUpdateMsg((data) => {
+    if (data.type === 'available') {
+        // 发现新版本，弹出模态框
+        appUpdateModal.style.display = 'flex';
+        appUpdateNote.innerText = data.text;
+        appUpdateBtn.onclick = () => {
+            appUpdateBtn.disabled = true;
+            appUpdateBtn.innerText = "UPDATING...";
+            window.api.startAppDownload();
+        };
+    } else if (data.type === 'progress') {
+        appUpdateBar.style.width = `${data.percent}%`;
+    } else if (data.type === 'downloaded') {
+        appUpdateBtn.innerText = "RESTARTING...";
+        appUpdateNote.innerText = "下载完成，正在重启安装...";
     }
 });
 
-initLauncherData();
+// 手动检查 (初始化时调用)
+setTimeout(() => window.api.checkAppUpdate(), 2000);
 
-// ================== 3. 登录与启动 ==================
+// ================== 3. 登录与游戏启动 ==================
 const loginBtn = document.getElementById('loginBtn');
 const launchBtn = document.getElementById('launchBtn');
 const eulaCheck = document.getElementById('eula-check');
 const statusText = document.getElementById('loginStatus');
+const newsCard = document.querySelector('.news-card');
+
 let storedAuthData = null;
 
-function checkLaunchState() {
-    if (storedAuthData && eulaCheck.checked) {
-        launchBtn.disabled = false; launchBtn.innerText = "启动游戏"; launchBtn.style.opacity = "1";
-    } else {
-        launchBtn.disabled = true; launchBtn.style.opacity = "0.7";
-        if (!storedAuthData) launchBtn.innerText = "请先登录";
-        else if (!eulaCheck.checked) launchBtn.innerText = "需同意 EULA";
-    }
-}
-eulaCheck.addEventListener('change', checkLaunchState);
+// 模拟获取新闻
+setTimeout(() => {
+    newsCard.innerHTML = `
+        <div class="news-card-item">
+            <span class="news-text">🔥 全新 OKX 风格界面上线</span>
+            <i class="fas fa-bolt news-icon" style="color:var(--accent-blue)"></i>
+        </div>
+        <div class="news-card-item">
+            <span class="news-text">服务端网络波动公告</span>
+            <span style="font-size:12px; color:#666">Today</span>
+        </div>
+    `;
+}, 1000);
 
+// 登录逻辑
 loginBtn.addEventListener('click', async () => {
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
     const authServer = document.getElementById('authServer').value;
+    
     if(!username || !password) return;
     
-    statusText.innerText = "验证中..."; statusText.style.color = "yellow"; loginBtn.disabled = true;
+    loginBtn.disabled = true; loginBtn.innerText = "VERIFYING...";
     const result = await window.api.login({ username, password, authServer });
 
     if (result.success) {
-        statusText.innerText = `欢迎, ${result.data.selectedProfile.name}`;
-        statusText.style.color = "#4CAF50";
         storedAuthData = result.data;
+        loginBtn.innerText = "已连接";
+        statusText.innerText = `OPERATOR: ${result.data.selectedProfile.name}`;
+        statusText.style.color = "#4CAF50";
         checkLaunchState();
     } else {
-        statusText.innerText = result.error.substring(0, 20) + "...";
-        statusText.style.color = "#e81123";
+        loginBtn.disabled = false; loginBtn.innerText = "登录";
+        statusText.innerText = result.error.substring(0, 30);
+        statusText.style.color = "#F6465D";
     }
-    loginBtn.disabled = false;
 });
 
-launchBtn.addEventListener('click', () => {
-    if (!storedAuthData || !eulaCheck.checked) return;
-    launchBtn.disabled = true; launchBtn.innerText = "启动中...";
-    let memConfig = document.getElementById('ram-input').value ? { max: document.getElementById('ram-input').value + "M", min: "1024M" } : null;
-    let javaPath = document.getElementById('java-path-display').value || null;
+function checkLaunchState() {
+    if (storedAuthData && eulaCheck.checked) {
+        launchBtn.disabled = false;
+    } else {
+        launchBtn.disabled = true;
+    }
+}
+eulaCheck.addEventListener('change', checkLaunchState);
+
+// ================== 4. 启动核心 (包含游戏资源更新) ==================
+const progressLine = document.getElementById('progress-line');
+const progressText = document.getElementById('progress-text');
+const progressPercent = document.getElementById('progress-percent');
+
+// 监听游戏资源更新进度 (复用底部进度条)
+window.api.onUpdateProgress((data) => {
+    if (data.status === 'checking') {
+        progressText.innerText = "正在校验资源...";
+    } else if (data.status === 'downloading') {
+        progressText.innerText = data.text; // 显示正在下载的文件名
+        progressLine.style.width = `${data.percent}%`;
+        progressPercent.innerText = `${Math.round(data.percent)}%`;
+    }
+});
+
+launchBtn.addEventListener('click', async () => {
+    launchBtn.disabled = true;
+    
+    // 1. 先检查游戏资源更新 (增量)
+    progressText.innerText = "正在同步游戏环境...";
+    const updateResult = await window.api.updateGameContent(); // 调用 Main 进程的新接口
+    
+    if (!updateResult.success && updateResult.error) {
+        // 如果更新失败但不是致命错误，询问是否继续
+        if(!confirm(`资源同步失败: ${updateResult.error}\n是否尝试强行启动？`)) {
+            launchBtn.disabled = false;
+            progressText.innerText = "启动取消";
+            return;
+        }
+    }
+
+    // 2. 准备启动
+    progressText.innerText = "初始化 Java 虚拟机...";
+    progressLine.style.width = "100%";
+    
+    let memConfig = document.getElementById('ram-input').value 
+        ? { max: document.getElementById('ram-input').value + "M", min: "1024M" } 
+        : null;
 
     window.api.startGame({
         authData: storedAuthData,
         authServer: document.getElementById('authServer').value,
         memory: memConfig,
-        javaPath: javaPath,
-        
-        // 🔥 传递独立的直连 IP (如果为 null 则不传递)
-        connectIP: autoConnectIP
+        connectIP: null // 如果有直连需求可在此填入
     });
 });
 
-const progressText = document.getElementById('progress-text');
-const progressLine = document.getElementById('progress-line');
-
+// 监听游戏日志
 window.api.onLog((msg) => {
-    if(msg.includes('Downloading')) progressText.innerText = "☁️ 下载中: " + msg;
-    else if (msg.includes('Launching')) progressText.innerText = "🚀 启动 Java...";
-    else progressText.innerText = msg.length > 60 ? msg.substring(0, 60) + "..." : msg;
+    if (msg.includes('Setting user')) progressText.innerText = "加载用户配置...";
+    else if (msg.includes('LWJGL')) progressText.innerText = "加载原生库...";
+    else if (msg.includes('GL_VERSION')) progressText.innerText = "渲染引擎就绪";
+    else if (msg.length < 50) progressText.innerText = msg; // 只显示短日志
 });
 
 window.api.onProgress((e) => {
-    const percent = (e.task / e.total) * 100;
-    progressLine.style.width = `${percent}%`;
-    document.getElementById('progress-percent').innerText = `${Math.round(percent)}%`;
+    // 游戏启动过程中的资源校验 (MCL 自带)
+    const p = (e.task / e.total) * 100;
+    progressLine.style.width = `${p}%`;
 });

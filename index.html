@@ -1,236 +1,364 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-    <title>WARAGE Launcher</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <meta charset="UTF-8">
+    <title>HYPER INDUSTRY</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        * { box-sizing: border-box; user-select: none; }
-        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; overflow: hidden; background: transparent; }
+        :root {
+            /* OKX / Web3 Palette */
+            --bg-body: #000000;
+            --bg-card: #121212;
+            --bg-input: #1C1C1C;
+            --accent-blue: #2955FF; /* 欧易蓝 */
+            --accent-gradient: linear-gradient(92deg, #2955FF 0%, #0019FA 100%);
+            --text-primary: #FFFFFF;
+            --text-secondary: #888888;
+            --border-color: #262626;
+            --radius-box: 16px;
+            --radius-btn: 100px; /* 胶囊按钮 */
+        }
+
+        * { box-sizing: border-box; user-select: none; outline: none; }
+        
+        body { 
+            margin: 0; padding: 0; 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+            overflow: hidden; 
+            background: transparent; 
+            color: var(--text-primary);
+        }
         
         #app {
-            width: 100vw; height: 100vh; background: #1a1a1a;
-            border-radius: 12px; overflow: hidden; display: flex;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5); position: relative;
+            width: 100vw; height: 100vh; 
+            background: var(--bg-body);
+            border-radius: 24px;
+            overflow: hidden; 
+            display: flex;
+            position: relative;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+            border: 1px solid #1a1a1a;
         }
 
+        /* 背景氛围光 (Web3 标志性的弥散光) */
+        .ambient-glow {
+            position: absolute; top: -20%; right: -10%;
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(41, 85, 255, 0.15) 0%, rgba(0,0,0,0) 70%);
+            pointer-events: none; z-index: 0;
+        }
+        .ambient-glow-2 {
+            position: absolute; bottom: -20%; left: -10%;
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(100, 41, 255, 0.08) 0%, rgba(0,0,0,0) 70%);
+            pointer-events: none; z-index: 0;
+        }
+
+        /* ================= 顶部标题栏 ================= */
         #title-bar {
-            position: absolute; top: 0; left: 0; width: 100%; height: 32px;
-            z-index: 100; -webkit-app-region: drag;
-            display: flex; justify-content: flex-end; align-items: center; padding-right: 10px;
+            position: absolute; top: 0; left: 0; width: 100%; height: 44px;
+            z-index: 1000; -webkit-app-region: drag;
+            display: flex; justify-content: flex-end; align-items: center; padding-right: 16px;
         }
         .win-btn {
-            width: 30px; height: 30px; line-height: 30px; text-align: center;
-            color: #ccc; cursor: pointer; -webkit-app-region: no-drag; transition: 0.2s; border-radius: 4px;
+            width: 32px; height: 32px; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            color: var(--text-secondary); cursor: pointer; -webkit-app-region: no-drag; 
+            transition: 0.2s; background: rgba(255,255,255,0.05); margin-left: 8px;
         }
-        .win-btn:hover { background: rgba(255,255,255,0.1); color: white; }
-        .win-btn.close:hover { background: #e81123; }
+        .win-btn:hover { background: rgba(255,255,255,0.2); color: white; }
+        .win-btn.close:hover { background: #FF3B30; color: white; }
 
-        /* Sidebar */
+        /* ================= 左侧卡片 (登录) ================= */
         .sidebar {
-            width: 260px; background: rgba(30, 30, 30, 0.98);
-            display: flex; flex-direction: column; padding: 40px 20px; z-index: 10;
-            border-right: 1px solid #333;
+            width: 340px; margin: 16px;
+            background: var(--bg-card);
+            border-radius: var(--radius-box);
+            display: flex; flex-direction: column; 
+            padding: 40px 32px; z-index: 10;
+            border: 1px solid var(--border-color);
         }
-        .logo { font-size: 24px; font-weight: bold; color: #fff; margin-bottom: 30px; letter-spacing: 2px;}
-        .logo span { color: #4CAF50; }
 
-        .input-group { margin-bottom: 15px; }
-        .input-group label { display: block; color: #888; font-size: 12px; margin-bottom: 5px; }
-        input[type="text"], input[type="password"], input[type="number"] {
-            width: 100%; padding: 10px; background: #2b2b2b; border: 1px solid #333;
-            color: white; border-radius: 6px; outline: none; transition: 0.3s;
-        }
-        input:focus { border-color: #4CAF50; background: #333; }
+        .brand-area { margin-bottom: 40px; }
+        .brand-text { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; display: flex; align-items: center; gap: 8px;}
+        .brand-dot { width: 8px; height: 8px; background: var(--accent-blue); border-radius: 50%; }
 
-        .btn-text {
-            background: none; border: none; color: #aaa; cursor: pointer;
-            padding: 10px; display: flex; align-items: center; gap: 10px;
-            transition: 0.3s; width: 100%; text-align: left; font-size: 14px;
-        }
-        .btn-text:hover { color: #fff; background: rgba(255,255,255,0.05); border-radius: 6px;}
-        .sidebar-footer { margin-top: auto; border-top: 1px solid #333; padding-top: 10px; }
+        .form-header { margin-bottom: 24px; }
+        .form-header h2 { font-size: 28px; font-weight: 600; margin: 0 0 8px 0; letter-spacing: -0.8px; }
+        .form-header p { color: var(--text-secondary); font-size: 14px; margin: 0; }
 
-        /* Main Content */
-        .main-content {
-            flex: 1; position: relative;
-            background: url('https://images.alphacoders.com/133/1336338.png') center/cover no-repeat;
-            display: flex; flex-direction: column; justify-content: space-between; padding: 60px;
+        .input-group { margin-bottom: 20px; }
+        .input-group label { 
+            display: block; color: var(--text-secondary); 
+            font-size: 13px; margin-bottom: 10px; font-weight: 500;
         }
-        .overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(to right, rgba(20,20,20,0.9) 0%, rgba(20,20,20,0.4) 100%);
-            z-index: 1; pointer-events: none;
-        }
-        .content-container { z-index: 2; color: white; margin-top: 40px;}
-
-        /* News & Status */
-        .news-card {
-            background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);
-            padding: 20px; border-radius: 8px; border-left: 4px solid #4CAF50;
-            max-width: 400px; margin-bottom: 20px;
-        }
-        .news-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; }
-        .news-item { font-size: 14px; color: #ddd; margin-bottom: 5px; display: flex; align-items: center; gap: 8px;}
         
-        .server-status { display: flex; gap: 20px; color: #ccc; font-size: 14px; margin-top: 10px; }
-        .status-dot { width: 10px; height: 10px; background: #4CAF50; border-radius: 50%; display: inline-block; }
+        input[type="text"], input[type="password"], input[type="number"] {
+            width: 100%; padding: 16px; 
+            background: var(--bg-input); 
+            border: 1px solid transparent;
+            color: var(--text-primary); border-radius: 12px; 
+            font-size: 15px; transition: 0.3s;
+            font-family: 'Inter', sans-serif;
+        }
+        input:focus { 
+            background: #252525;
+            border-color: var(--accent-blue); 
+            box-shadow: 0 0 0 4px rgba(41, 85, 255, 0.1);
+        }
 
-        /* Launch Area */
-        .launch-area { z-index: 2; text-align: right; display: flex; flex-direction: column; align-items: flex-end; }
+        #loginBtn {
+            background: var(--text-primary); /* 黑底白字，反差极大 */
+            color: #000;
+            border: none;
+            width: 100%; padding: 16px;
+            font-weight: 700; font-size: 16px;
+            border-radius: var(--radius-btn); 
+            cursor: pointer; transition: 0.3s; margin-top: 10px;
+        }
+        #loginBtn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(255,255,255,0.1); }
+        #loginBtn:disabled { background: #333; color: #666; cursor: not-allowed; transform: none; }
+
+        .helper-text { text-align: center; margin-top: 20px; font-size: 13px; color: var(--text-secondary); }
+        .helper-text span { color: var(--text-primary); cursor: pointer; text-decoration: underline; text-decoration-color: #333;}
+        .helper-text span:hover { text-decoration-color: white; }
+
+        .sidebar-footer { margin-top: auto; display: flex; gap: 10px; }
+        .icon-btn {
+            flex: 1; padding: 12px; border-radius: 12px;
+            background: var(--bg-input); border: none; color: var(--text-secondary);
+            cursor: pointer; transition: 0.2s; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 6px;
+        }
+        .icon-btn:hover { background: #252525; color: white; }
+
+        /* ================= 右侧展示区 ================= */
+        .main-content {
+            flex: 1; padding: 60px 40px;
+            display: flex; flex-direction: column; justify-content: space-between;
+            position: relative; z-index: 5;
+        }
+
+        .status-pill {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(41, 85, 255, 0.1); color: #5B89FF;
+            padding: 8px 16px; border-radius: 20px;
+            font-size: 13px; font-weight: 600; width: fit-content;
+        }
+        .dot-pulse { width: 6px; height: 6px; background: #5B89FF; border-radius: 50%; box-shadow: 0 0 8px #5B89FF; }
+
+        .news-section { margin-top: 40px; }
+        .news-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; color: white; }
+        
+        .news-card-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 16px; background: rgba(255,255,255,0.03);
+            border-radius: 12px; margin-bottom: 12px;
+            cursor: pointer; transition: 0.2s; border: 1px solid transparent;
+        }
+        .news-card-item:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.1); transform: scale(1.01); }
+        .news-text { font-size: 14px; font-weight: 500; }
+        .news-icon { color: var(--text-secondary); }
+
+        /* 启动底栏 */
+        .launch-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            background: #0A0A0A; padding: 10px; border-radius: 24px;
+            border: 1px solid #222; margin-bottom: 10px;
+        }
+
+        .eula-check {
+            padding-left: 20px; font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px;
+        }
+        input[type="checkbox"] { accent-color: var(--accent-blue); width: 16px; height: 16px; }
+
         #launchBtn {
-            padding: 15px 60px; font-size: 24px; font-weight: bold;
-            background: #4CAF50; color: white; border: none; border-radius: 8px;
-            cursor: pointer; box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
-            transition: all 0.3s; opacity: 1;
+            padding: 18px 48px;
+            background: var(--accent-gradient);
+            color: white; border: none; font-size: 18px; font-weight: 700;
+            border-radius: 20px; cursor: pointer; transition: 0.3s;
+            box-shadow: 0 8px 24px rgba(41, 85, 255, 0.25);
+            min-width: 200px;
         }
-        #launchBtn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(76, 175, 80, 0.6); }
-        #launchBtn:disabled { background: #444; color: #888; cursor: not-allowed; transform: none; box-shadow: none; opacity: 0.7; }
-        .eula-container {
-            margin-top: 10px; color: #ccc; font-size: 13px; display: flex; align-items: center; gap: 8px;
-            background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 4px;
-        }
-        .eula-link { color: #4CAF50; text-decoration: underline; cursor: pointer; }
+        #launchBtn:hover:not(:disabled) { transform: scale(1.03); box-shadow: 0 12px 30px rgba(41, 85, 255, 0.4); }
+        #launchBtn:disabled { background: #222; color: #555; box-shadow: none; cursor: not-allowed; }
 
-        /* Bottom Bar */
-        .status-bar {
-            position: absolute; bottom: 0; right: 0; width: 100%; z-index: 10;
-            background: rgba(0,0,0,0.8); color: #aaa;
-            padding: 5px 15px; font-size: 12px; display: flex; justify-content: space-between;
+        /* 底部进度条 */
+        .progress-wrapper {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 4px; background: #222;
         }
         #progress-line {
-            position: absolute; bottom: 0; left: 0; height: 3px; 
-            background: #4CAF50; width: 0%; transition: width 0.2s; z-index: 200;
+            height: 100%; background: var(--accent-gradient); width: 0%; transition: width 0.2s;
+            box-shadow: 0 0 10px var(--accent-blue);
+        }
+        .progress-info {
+            position: absolute; bottom: 10px; right: 20px; font-size: 12px; color: var(--text-secondary); font-family: monospace;
         }
 
-        /* Modal (Settings) */
-        #settings-modal {
+        /* 模态框 (统一圆润风格) */
+        .modal-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); z-index: 200;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(10px); z-index: 500;
             display: none; justify-content: center; align-items: center;
         }
         .modal-box {
-            background: #222; padding: 30px; border-radius: 10px; width: 450px;
-            border: 1px solid #444; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            background: #1A1A1A; width: 460px; border-radius: 24px;
+            padding: 32px; border: 1px solid #333;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
         }
-        .file-select-row { display: flex; gap: 10px; }
-        .file-select-row input { flex: 1; cursor: default; }
-        .file-select-row button { padding: 0 15px; background: #444; border: 1px solid #555; color: white; border-radius: 6px; cursor: pointer; }
-        .range-container { display: flex; align-items: center; gap: 10px; }
-        input[type=range] { flex: 1; accent-color: #4CAF50; cursor: pointer; }
+        .modal-header { font-size: 20px; font-weight: 700; margin-bottom: 24px; display: flex; justify-content: space-between; }
+        
+        .file-row { display: flex; gap: 10px; }
+        .btn-ghost {
+            background: rgba(255,255,255,0.1); color: white; border: none;
+            padding: 0 16px; border-radius: 12px; cursor: pointer; transition: 0.2s;
+        }
+        .btn-ghost:hover { background: rgba(255,255,255,0.2); }
 
-        /* 🔥 更新弹窗 (新增) 🔥 */
-        #update-modal {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95); z-index: 300;
-            display: none; justify-content: center; align-items: center;
+        /* 滑块美化 */
+        input[type=range] {
+            width: 100%; height: 6px; background: #333; border-radius: 3px; appearance: none;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            appearance: none; width: 20px; height: 20px; border-radius: 50%;
+            background: var(--accent-blue); cursor: pointer; border: 2px solid white;
         }
     </style>
 </head>
 <body>
     <div id="app">
+        <div class="ambient-glow"></div>
+        <div class="ambient-glow-2"></div>
+
         <div id="title-bar">
             <div class="win-btn" id="btn-min"><i class="fas fa-minus"></i></div>
             <div class="win-btn close" id="btn-close"><i class="fas fa-times"></i></div>
         </div>
 
-        <div id="settings-modal">
+        <div id="settings-modal" class="modal-overlay">
             <div class="modal-box">
-                <div style="margin-bottom:20px; font-size:18px; color:white; display:flex; justify-content:space-between;">
-                    <span>启动设置</span>
-                    <i class="fas fa-times" id="close-settings" style="cursor:pointer"></i>
+                <div class="modal-header">
+                    <span>偏好设置</span>
+                    <i class="fas fa-times" id="close-settings" style="cursor:pointer; color:#666"></i>
                 </div>
+                
                 <div class="input-group">
-                    <label>Java 路径 (留空使用内置)</label>
-                    <div class="file-select-row">
-                        <input type="text" id="java-path-display" placeholder="自动使用内置 Java" readonly>
-                        <button id="btn-select-java">选择...</button>
+                    <label>Java 运行环境</label>
+                    <div class="file-row">
+                        <input type="text" id="java-path-display" placeholder="默认: 内置 JDK 17 (推荐)" readonly>
+                        <button class="btn-ghost" id="btn-select-java">浏览</button>
                     </div>
                 </div>
+
                 <div class="input-group">
-                    <label>最大内存: <span id="ram-value-display" style="color:#4CAF50">自动</span></label>
-                    <div class="range-container">
+                    <label>最大内存 (RAM): <span id="ram-value-display" style="color:var(--accent-blue)">自动</span></label>
+                    <div style="display:flex; align-items:center; gap:12px;">
                         <input type="range" id="ram-slider" min="1024" max="16384" step="512" value="4096">
-                        <input type="number" id="ram-input" style="width: 80px;" placeholder="自动">
+                        <input type="number" id="ram-input" style="width: 80px; text-align:center;" placeholder="Auto">
                     </div>
                 </div>
+
                 <div class="input-group">
-                    <label>验证服务器</label>
+                    <label>账户验证源</label>
                     <input type="text" id="authServer" value="https://littleskin.cn/api/yggdrasil">
                 </div>
-                <button class="btn-text" id="save-settings" style="background:#4CAF50; color:white; justify-content:center; border-radius:4px; margin-top:20px;">
-                    保存设置
+
+                <button id="save-settings" style="width:100%; padding:16px; background:white; color:black; border:none; border-radius:100px; font-weight:700; cursor:pointer;">
+                    保存更改
                 </button>
             </div>
         </div>
 
-        <div id="update-modal">
-            <div class="modal-box" style="text-align: center; border: 1px solid #4CAF50;">
-                <div style="font-size: 40px; color: #4CAF50; margin-bottom: 20px;"><i class="fas fa-cloud-download-alt"></i></div>
-                <h2 id="update-title" style="color:#fff; margin-top:0;">发现新版本</h2>
-                <p id="update-note" style="color:#ccc; margin: 20px 0; font-size: 14px; text-align: left; background:#333; padding:15px; border-radius:5px; line-height: 1.5;"></p>
+        <div id="update-modal" class="modal-overlay">
+            <div class="modal-box" style="text-align: center;">
+                <div style="width: 60px; height: 60px; background: rgba(41, 85, 255, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto;">
+                    <i class="fas fa-arrow-up" style="font-size: 24px; color: var(--accent-blue);"></i>
+                </div>
+                <h3 id="update-title" style="margin: 0 0 10px 0;">发现新版本</h3>
+                <p id="update-note" style="color:#888; font-size: 14px; margin-bottom: 24px; line-height: 1.5;"></p>
                 
-                <div style="width:100%; height:6px; background:#444; margin-bottom:20px; border-radius:3px; overflow:hidden;">
-                    <div id="update-progress-bar" style="width:0%; height:100%; background:#4CAF50; transition: width 0.2s;"></div>
+                <div style="width:100%; height:6px; background:#333; margin-bottom:24px; border-radius:3px; overflow:hidden;">
+                    <div id="update-progress-bar" style="width:0%; height:100%; background:var(--accent-gradient); transition: width 0.2s;"></div>
                 </div>
 
-                <button id="btn-start-update" style="padding:12px 40px; background:#4CAF50; border:none; color:white; border-radius:5px; cursor:pointer; font-size:16px; font-weight: bold;">
-                    立即更新
+                <button id="btn-start-update" style="width:100%; padding:16px; background:var(--accent-blue); border:none; border-radius:100px; color:white; font-weight:700; cursor:pointer;">
+                    立即升级
                 </button>
             </div>
         </div>
 
         <div class="sidebar">
-            <div class="logo">WARAGE <span>Launcher</span></div>
+            <div class="brand-area">
+                <div class="brand-text">
+                    <div class="brand-dot"></div>
+                    HYPER INDUSTRY
+                </div>
+            </div>
+
+            <div class="form-header">
+                <h2>登录账户</h2>
+                <p>连接至 Hyper Network</p>
+            </div>
+            
             <div class="input-group">
-                <label>账号 / 邮箱</label>
-                <input type="text" id="username" placeholder="name@example.com">
+                <label>邮箱或用户名</label>
+                <input type="text" id="username">
             </div>
             <div class="input-group">
-                <label>密码</label>
-                <input type="password" id="password" placeholder="••••••">
+                <label>访问密钥 (密码)</label>
+                <input type="password" id="password">
             </div>
-            <button id="loginBtn" class="btn-text" style="background: #333; justify-content: center; margin-top:10px; color:white; border-radius:6px; border:1px solid #444;">
-                <i class="fas fa-sign-in-alt"></i> 登录账号
-            </button>
-            <p id="loginStatus" style="font-size:12px; color:#666; margin-top:10px; text-align:center;">请先登录</p>
-            <button class="btn-text" id="btn-register" style="margin-top: 10px; justify-content: center; color: #4CAF50;">
-                <i class="fas fa-user-plus"></i> 没有账号？去注册
-            </button>
+
+            <button id="loginBtn">登录</button>
+            <div class="helper-text">
+                没有账户？ <span id="btn-register">创建新账户</span>
+            </div>
+
             <div class="sidebar-footer">
-                <button class="btn-text" id="open-settings"><i class="fas fa-cog"></i> 游戏设置</button>
-                <button class="btn-text" id="btn-about"><i class="fas fa-info-circle"></i> 关于我们</button>
+                <button class="icon-btn" id="open-settings"><i class="fas fa-sliders-h"></i> 设置</button>
+                <button class="icon-btn" id="btn-about"><i class="fas fa-info-circle"></i> 关于</button>
             </div>
         </div>
 
         <div class="main-content">
-            <div class="overlay"></div>
-            
-            <div class="content-container">
-                <h1 style="font-size: 36px; margin: 0 0 10px 0;">欢迎来到 WARAGE</h1>
-                <div class="server-status">
-                    <span><i class="fas fa-spinner fa-spin"></i> 连接服务器中...</span>
+            <div>
+                <div class="status-pill">
+                    <div class="dot-pulse"></div>
+                    节点运行正常
                 </div>
 
-                <div class="news-card" style="margin-top: 30px;">
-                    <div class="news-title"><i class="fas fa-bullhorn"></i> 最新公告</div>
+                <div class="news-section">
+                    <div class="news-title">最新动态</div>
+                    <div class="news-card">
+                        <div class="news-card-item">
+                            <span class="news-text">正在获取网络数据...</span>
+                            <i class="fas fa-chevron-right news-icon"></i>
+                        </div>
                     </div>
-            </div>
-
-            <div class="launch-area">
-                <button id="launchBtn" disabled>启动游戏</button>
-                <div class="eula-container">
-                    <input type="checkbox" id="eula-check"> 
-                    <span>我已阅读并同意 <span class="eula-link" id="link-eula">用户协议 (EULA)</span></span>
                 </div>
             </div>
 
-            <div class="status-bar">
-                <span id="progress-text">等待操作...</span>
-                <span id="progress-percent">0%</span>
+            <div>
+                <div class="launch-bar">
+                    <div class="eula-check">
+                        <input type="checkbox" id="eula-check">
+                        <span>同意 <span id="link-eula" style="color:white; text-decoration:underline; cursor:pointer">用户协议</span></span>
+                    </div>
+                    <button id="launchBtn" disabled>
+                        立即启动
+                    </button>
+                </div>
+                <p id="loginStatus" style="font-size:12px; color:#666; text-align:right; margin-right:10px;">等待验证...</p>
             </div>
+        </div>
+
+        <div class="progress-wrapper">
             <div id="progress-line"></div>
         </div>
+        <span class="progress-info" id="progress-percent">0%</span>
+        <span class="progress-info" id="progress-text" style="right: 60px;">就绪</span>
     </div>
+
     <script src="renderer.js"></script>
 </body>
 </html>
